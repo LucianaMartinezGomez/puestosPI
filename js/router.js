@@ -25,6 +25,12 @@ export function initRouter(targetEl) {
     const view = parseHash();
     const renderer = routes[view] || routes['inicio'];
     targetEl.innerHTML = renderer();
+    // dispatch an event so view modules can bind post-render handlers
+    try {
+      document.dispatchEvent(new CustomEvent('view-rendered', { detail: { view } }));
+    } catch (e) {
+      // fail silently if CustomEvent not supported
+    }
     // opcional: set title
     const titleEl = document.getElementById('current-view-title');
     if (titleEl) titleEl.innerText = view.charAt(0).toUpperCase() + view.slice(1);

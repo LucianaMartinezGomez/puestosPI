@@ -3,7 +3,9 @@
 export function Sidebar() {
   // usa data-view en lugar de onclick inline
   return `
-    <div id="sidebar-wrapper" class="bg-dark text-white d-flex flex-column" style="width:260px;min-height:100vh">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <div id="sidebar-wrapper" class="bg-dark text-white d-flex flex-column">
+      <button class="sidebar-close" id="sidebar-close" aria-label="Cerrar menú">&times;</button>
       <div class="p-4">
         <h4 class="mb-0"><i class="bi bi-building-gear me-2"></i>VISTA ADMIN</h4>
         <small class="text-muted">Panel de Control</small>
