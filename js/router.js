@@ -23,14 +23,15 @@ export function navigateTo(view) {
 export function initRouter(targetEl) {
   function render() {
     const view = parseHash();
-    const renderer = routes[view] || routes['inicio'];
-    targetEl.innerHTML = renderer();
-    // dispatch an event so view modules can bind post-render handlers
-    try {
-      document.dispatchEvent(new CustomEvent('view-rendered', { detail: { view } }));
-    } catch (e) {
-      // fail silently if CustomEvent not supported
-    }
+    const factory = routes[view] || routes['inicio'];
+    const viewObj = factory();
+
+    // 1. Inyectar HTML puro
+    targetEl.innerHTML = viewObj.render();
+
+    // 2. Cargar toda la lógica (selectores, eventos, estado)
+    viewObj.cargarRender();
+
     // opcional: set title
     const titleEl = document.getElementById('current-view-title');
     if (titleEl) titleEl.innerText = view.charAt(0).toUpperCase() + view.slice(1);

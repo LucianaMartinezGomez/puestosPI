@@ -1,7 +1,10 @@
-// javascript
-// Versión muy sencilla del Inventario — SIN localStorage, lógica clara y mínima
+// File: js/view/inventario.js
+// Patrón obligatorio: render() = HTML puro | cargarRender() = toda la lógica
+
 export function renderInventario() {
-  return `
+  return {
+    render() {
+      return `
   <div class="container-fluid p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
@@ -65,99 +68,95 @@ export function renderInventario() {
     </div>
   </div>
   `;
-}
+    },
 
-// Lógica simple: array en memoria, funciones claras
-let simpleBound = false;
-let simpleItems = [];
-let simpleId = 1;
+    cargarRender() {
+      // --- Estado interno ---
+      let simpleItems = [{ id: 1, nombre: 'Bombilla LED', categoria: 'Iluminación', cantidad: 3, descripcion: '' }];
+      let simpleId = 2;
 
-
-function renderList(){
-  const tbody = document.getElementById('inventory-list');
-  if(!tbody) return;
-  let html = '';
-  for(let i=0;i<simpleItems.length;i++){
-    const it = simpleItems[i];
-    html += '<tr data-id="'+it.id+'">'
-         + '<td class="ps-4 fw-bold">'+it.nombre+'</td>'
-         + '<td>'+it.categoria+'</td>'
-         + '<td>'+Number(it.cantidad)+' disponibles</td>'
-         + '<td class="text-end pe-4">'
-         + '<button class="btn btn-sm btn-outline-secondary me-1 btn-edit" data-id="'+it.id+'">Editar</button>'
-         + '<button class="btn btn-sm btn-outline-danger btn-delete" data-id="'+it.id+'">Eliminar</button>'
-         + '</td></tr>';
-  }
-  tbody.innerHTML = html;
-}
-
-function bindSimple(){
-  if(simpleBound) return; simpleBound = true;
-
-  // ejemplo inicial
-  simpleItems = [{ id: simpleId++, nombre: 'Bombilla LED', categoria: 'Iluminación', cantidad: 3, descripcion:'' }];
-  renderList();
-
-  const form = document.getElementById('materialForm');
-  const modalEl = document.getElementById('addMaterialModal');
-  const bsModal = (window.bootstrap && modalEl) ? new bootstrap.Modal(modalEl) : null;
-
-  // Guardar (nuevo o editar)
-  form.addEventListener('submit', function(e){
-    e.preventDefault();
-    const id = form.itemId.value;
-    const nombre = form.nombre.value.trim();
-    const categoria = form.categoria.value.trim();
-    const cantidad = Number(form.cantidad.value) || 0;
-    const descripcion = form.descripcion.value.trim();
-
-    if(id){ // editar
-      for(let i=0;i<simpleItems.length;i++){
-        if(simpleItems[i].id == Number(id)){
-          simpleItems[i].nombre = nombre;
-          simpleItems[i].categoria = categoria;
-          simpleItems[i].cantidad = cantidad;
-          simpleItems[i].descripcion = descripcion;
-          break;
+      // --- Función auxiliar para pintar la tabla ---
+      function renderList() {
+        const tbody = document.getElementById('inventory-list');
+        if (!tbody) return;
+        let html = '';
+        for (let i = 0; i < simpleItems.length; i++) {
+          const it = simpleItems[i];
+          html += '<tr data-id="' + it.id + '">'
+            + '<td class="ps-4 fw-bold">' + it.nombre + '</td>'
+            + '<td>' + it.categoria + '</td>'
+            + '<td>' + Number(it.cantidad) + ' disponibles</td>'
+            + '<td class="text-end pe-4">'
+            + '<button class="btn btn-sm btn-outline-secondary me-1 btn-edit" data-id="' + it.id + '">Editar</button>'
+            + '<button class="btn btn-sm btn-outline-danger btn-delete" data-id="' + it.id + '">Eliminar</button>'
+            + '</td></tr>';
         }
+        tbody.innerHTML = html;
       }
-    } else { // nuevo
-      simpleItems.unshift({ id: simpleId++, nombre, categoria, cantidad, descripcion });
-    }
-    renderList();
-    form.reset(); form.itemId.value = '';
-    if(bsModal) bsModal.hide();
-  });
 
-  // Delegación para editar / eliminar
-  document.addEventListener('click', function(e){
-    const edit = e.target.closest('.btn-edit');
-    if(edit){
-      const id = Number(edit.getAttribute('data-id'));
-      const item = simpleItems.find(x=>x.id===id);
-      if(!item) return;
-      form.itemId.value = item.id;
-      form.nombre.value = item.nombre;
-      form.categoria.value = item.categoria;
-      form.cantidad.value = item.cantidad;
-      form.descripcion.value = item.descripcion || '';
-      if(bsModal) bsModal.show();
-      return;
-    }
-    const del = e.target.closest('.btn-delete');
-    if(del){
-      const id = Number(del.getAttribute('data-id'));
-      if(!confirm('¿Eliminar este material?')) return;
-      simpleItems = simpleItems.filter(x=>x.id!==id);
+      // --- Selectores del DOM ---
+      const form = document.getElementById('materialForm');
+      const modalEl = document.getElementById('addMaterialModal');
+      const bsModal = (window.bootstrap && modalEl) ? new bootstrap.Modal(modalEl) : null;
+
+      // Pintar lista inicial
       renderList();
-      return;
-    }
-  });
-}
 
-// Conectar cuando la vista se renderice
-document.addEventListener('view-rendered', function(e){
-  if(e && e.detail && e.detail.view === 'inventario'){
-    setTimeout(bindSimple,0);
-  }
-});
+      // --- Event Listeners ---
+
+      // Guardar (nuevo o editar)
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          const id = form.itemId.value;
+          const nombre = form.nombre.value.trim();
+          const categoria = form.categoria.value.trim();
+          const cantidad = Number(form.cantidad.value) || 0;
+          const descripcion = form.descripcion.value.trim();
+
+          if (id) {
+            for (let i = 0; i < simpleItems.length; i++) {
+              if (simpleItems[i].id == Number(id)) {
+                simpleItems[i].nombre = nombre;
+                simpleItems[i].categoria = categoria;
+                simpleItems[i].cantidad = cantidad;
+                simpleItems[i].descripcion = descripcion;
+                break;
+              }
+            }
+          } else {
+            simpleItems.unshift({ id: simpleId++, nombre, categoria, cantidad, descripcion });
+          }
+          renderList();
+          form.reset(); form.itemId.value = '';
+          if (bsModal) bsModal.hide();
+        });
+      }
+
+      // Delegación para editar / eliminar
+      document.addEventListener('click', function (e) {
+        const edit = e.target.closest('.btn-edit');
+        if (edit) {
+          const id = Number(edit.getAttribute('data-id'));
+          const item = simpleItems.find(x => x.id === id);
+          if (!item) return;
+          form.itemId.value = item.id;
+          form.nombre.value = item.nombre;
+          form.categoria.value = item.categoria;
+          form.cantidad.value = item.cantidad;
+          form.descripcion.value = item.descripcion || '';
+          if (bsModal) bsModal.show();
+          return;
+        }
+        const del = e.target.closest('.btn-delete');
+        if (del) {
+          const id = Number(del.getAttribute('data-id'));
+          if (!confirm('¿Eliminar este material?')) return;
+          simpleItems = simpleItems.filter(x => x.id !== id);
+          renderList();
+          return;
+        }
+      });
+    }
+  };
+}

@@ -1,7 +1,11 @@
-// javascript
-// File: js/views/chat.js
+// File: js/view/chat.js
+// Patrón obligatorio: render() = HTML puro | cargarRender() = toda la lógica
+
 export function renderChat() {
-  return `<div class="chat-container p-4">
+  return {
+    // ─── RENDER: Solo HTML puro ───
+    render() {
+      return `<div class="chat-container p-4">
     <div class="row g-0 shadow-sm rounded-4 overflow-hidden bg-white" style="height: 80vh;">
         <div class="col-md-4 col-lg-3 border-end d-flex flex-column bg-light chat-sidebar d-none d-md-flex">
             <div class="p-3 border-bottom bg-white">
@@ -46,83 +50,85 @@ export function renderChat() {
         </div>
     </div>
   </div>`;
-}
+    },
 
-// Lógica simple y comentada para manejar el chat y las imágenes
-function createMessageHtml({direction='received', text='', imgSrc=null, time=null}){
-  const cls = direction === 'sent' ? 'message sent mb-3' : 'message received mb-3';
-  const timeHtml = time ? `<div class="message-time">${time}</div>` : '';
-  const imgHtml = imgSrc ? `<div style="margin-top:8px"><img src="${imgSrc}" style="max-width:100%;max-height:300px;height:auto;width:auto;border-radius:8px;display:block"></div>` : '';
-  return `<div class="${cls}"><div class="message-content shadow-sm">${text}${imgHtml}${timeHtml}</div></div>`;
-}
-
-function appendMessage(msg){
-  const container = document.getElementById('chatMessages');
-  if(!container) return;
-  container.insertAdjacentHTML('beforeend', createMessageHtml(msg));
-
-  // Si la última imagen tarda en cargar, hacer scroll al final cuando cargue
-  const last = container.lastElementChild;
-  if(last){
-    const img = last.querySelector('img');
-    if(img){
-      img.addEventListener('load', ()=>{ container.scrollTop = container.scrollHeight; });
-    }
-  }
-
-  // scroll por defecto (en caso de no imagen o si ya cargó rápido)
-  container.scrollTop = container.scrollHeight;
-}
-
-// Bind simple cuando la vista se renderiza
-document.addEventListener('view-rendered', (e)=>{
-  if(e?.detail?.view !== 'chat') return;
-
-  // empezar la conversación desde cero al renderizar la vista
-  const container = document.getElementById('chatMessages');
-  if(container) container.innerHTML = '';
-
-  const form = document.getElementById('chatForm');
-  const input = document.getElementById('chatInput');
-  const fileInput = document.getElementById('chatImage');
-  const clearBtn = document.getElementById('clearChatBtn');
-
-  if(form){
-    // botón para abrir selector de archivos (más compacto en móvil)
-    const imageBtn = document.getElementById('chatImageBtn');
-    if(imageBtn){
-      imageBtn.addEventListener('click', ()=>{ const fi = document.getElementById('chatImage'); if(fi) fi.click(); });
-    }
-
-    form.addEventListener('submit', (ev)=>{
-      ev.preventDefault();
-      const text = input.value.trim();
-      const file = fileInput.files && fileInput.files[0];
-
-      if(file){
-        // si el archivo es muy grande, limitar la lectura a imágenes y evitar layout shift
-        if(!file.type.startsWith('image/')){
-          alert('Solo se permiten imágenes.');
-        } else {
-          const reader = new FileReader();
-          reader.onload = function(evt){
-            appendMessage({direction:'sent', text: text || '', imgSrc: evt.target.result, time: new Date().toLocaleTimeString()});
-          };
-          reader.readAsDataURL(file);
-        }
-      } else if(text){
-        appendMessage({direction:'sent', text, time: new Date().toLocaleTimeString()});
+    // ─── CARGAR RENDER: Toda la lógica (selectores, eventos, estado) ───
+    cargarRender() {
+      // --- Funciones auxiliares internas ---
+      function createMessageHtml({ direction = 'received', text = '', imgSrc = null, time = null }) {
+        const cls = direction === 'sent' ? 'message sent mb-3' : 'message received mb-3';
+        const timeHtml = time ? `<div class="message-time">${time}</div>` : '';
+        const imgHtml = imgSrc
+          ? `<div style="margin-top:8px"><img src="${imgSrc}" style="max-width:100%;max-height:300px;height:auto;width:auto;border-radius:8px;display:block"></div>`
+          : '';
+        return `<div class="${cls}"><div class="message-content shadow-sm">${text}${imgHtml}${timeHtml}</div></div>`;
       }
 
-      // limpiar form
-      input.value = '';
-      fileInput.value = '';
-    });
-  }
+      function appendMessage(msg) {
+        const container = document.getElementById('chatMessages');
+        if (!container) return;
+        container.insertAdjacentHTML('beforeend', createMessageHtml(msg));
 
-  if(clearBtn){
-    clearBtn.addEventListener('click', ()=>{
-      const c = document.getElementById('chatMessages'); if(c) c.innerHTML = '';
-    });
-  }
-});
+        const last = container.lastElementChild;
+        if (last) {
+          const img = last.querySelector('img');
+          if (img) {
+            img.addEventListener('load', () => { container.scrollTop = container.scrollHeight; });
+          }
+        }
+        container.scrollTop = container.scrollHeight;
+      }
+
+      // --- Selectores del DOM ---
+      const container = document.getElementById('chatMessages');
+      const form = document.getElementById('chatForm');
+      const input = document.getElementById('chatInput');
+      const fileInput = document.getElementById('chatImage');
+      const clearBtn = document.getElementById('clearChatBtn');
+      const imageBtn = document.getElementById('chatImageBtn');
+
+      // Limpiar mensajes al cargar la vista
+      if (container) container.innerHTML = '';
+
+      // --- Event Listeners ---
+      if (imageBtn) {
+        imageBtn.addEventListener('click', () => {
+          const fi = document.getElementById('chatImage');
+          if (fi) fi.click();
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', (ev) => {
+          ev.preventDefault();
+          const text = input ? input.value.trim() : '';
+          const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+
+          if (file) {
+            if (!file.type.startsWith('image/')) {
+              alert('Solo se permiten imágenes.');
+            } else {
+              const reader = new FileReader();
+              reader.onload = function (evt) {
+                appendMessage({ direction: 'sent', text: text || '', imgSrc: evt.target.result, time: new Date().toLocaleTimeString() });
+              };
+              reader.readAsDataURL(file);
+            }
+          } else if (text) {
+            appendMessage({ direction: 'sent', text, time: new Date().toLocaleTimeString() });
+          }
+
+          if (input) input.value = '';
+          if (fileInput) fileInput.value = '';
+        });
+      }
+
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          const c = document.getElementById('chatMessages');
+          if (c) c.innerHTML = '';
+        });
+      }
+    }
+  };
+}

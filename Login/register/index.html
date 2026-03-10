@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>RutaClara — Registro</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+    /* Pequeños ajustes específicos para el formulario de registro */
+    .small-help { font-size: 13px; color: rgba(255,255,255,.45); text-align:center; margin-top:8px; }
+    .link-row { display:flex; justify-content:center; gap:8px; margin-top:12px; }
+    .link-row a { color: var(--amber); font-weight:800; text-decoration:none; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-logo">Ruta<em>Clara</em></div>
+  <div class="login-sub">Sistema de Mantenimiento · Riwi</div>
+  <div class="login-card">
+    <div class="login-field">
+      <label class="login-lbl">Nombre completo</label>
+      <input class="login-inp" id="reg-name" type="text" placeholder="Tu nombre completo">
+    </div>
+    <div class="login-field">
+      <label class="login-lbl">Correo Electrónico</label>
+      <input class="login-inp" id="reg-email" type="email" placeholder="nombre@riwi.edu.co">
+    </div>
+    <div class="login-field">
+      <label class="login-lbl">Pin</label>
+      <input class="login-inp" id="reg-pass" type="password" placeholder="***">
+    </div>
+    <div class="login-field">
+      <label class="login-lbl">Confirmar Pin</label>
+      <input class="login-inp" id="reg-pass-confirm" type="password" placeholder="***">
+    </div>
+    <button class="login-btn" id="reg-btn">Registrarse</button>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const roleBtns = Array.from(document.querySelectorAll('.role-btn'));
+    let selectedRole = 'Estudiante';
+    roleBtns.forEach(b => b.addEventListener('click', () => {
+      roleBtns.forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      selectedRole = b.textContent.trim().split('\n')[0];
+    }));
+
+    const err = document.getElementById('reg-err');
+    const nameInp = document.getElementById('reg-name');
+    const emailInp = document.getElementById('reg-email');
+    const passInp = document.getElementById('reg-pass');
+    const passConf = document.getElementById('reg-pass-confirm');
+    const btn = document.getElementById('reg-btn');
+
+    function showError(msg) { err.textContent = msg; err.style.display = 'block'; }
+    function hideError() { err.style.display = 'none'; }
+
+    btn.addEventListener('click', () => {
+      hideError();
+      const name = nameInp.value.trim();
+      const email = emailInp.value.trim();
+      const pass = passInp.value;
+      const passc = passConf.value;
+      if (!name || !email || !pass || !passc) { showError('Completa todos los campos'); return; }
+      if (pass.length < 4) { showError('El Pin debe tener al menos 4 caracteres'); return; }
+      if (pass !== passc) { showError('Los Pines no coinciden'); return; }
+
+      btn.disabled = true; btn.textContent = 'Registrando...';
+      // Simulación: normalmente enviaríamos a backend aquí
+      setTimeout(() => {
+        btn.textContent = 'Registrado ✓';
+        // redirigir al login
+        setTimeout(() => location.href = '../index.html', 700);
+      }, 800);
+    });
+  })();
+</script>
+
+</body>
+</html>
