@@ -1,9 +1,6 @@
 // File: js/view/chat.js
-// Patrón obligatorio: render() = HTML puro | cargarRender() = toda la lógica
-
 export function renderChat() {
   return {
-    // ─── RENDER: Solo HTML puro ───
     render() {
       return `<div class="chat-container p-4">
     <div class="row g-0 shadow-sm rounded-4 overflow-hidden bg-white" style="height: 80vh;">
@@ -22,7 +19,7 @@ export function renderChat() {
             </div>
         </div>
 
-        <div class="col-md-8 col-lg-9 d-flex flex-column">
+        <div class="col-md-8 col-lg-9 d-flex flex-column chat-col">
             <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-white">
                 <div class="d-flex align-items-center gap-3">
                     <div class="avatar sm">E</div>
@@ -31,17 +28,12 @@ export function renderChat() {
                 <button id="clearChatBtn" class="btn btn-sm btn-outline-secondary">Limpiar Chat</button>
             </div>
 
-            <div class="chat-messages flex-grow-1 p-4 overflow-y-auto bg-white" id="chatMessages">
-                <!-- mensajes se añadirán aquí -->
-            </div>
+            <div class="chat-messages flex-grow-1 p-4 overflow-y-auto bg-white" id="chatMessages" style="min-height: 0;">
+                </div>
 
             <div class="p-3 border-top bg-light">
                 <form id="chatForm" class="d-flex gap-2 align-items-center position-relative">
-                  <input id="chatInput" type="text" class="form-control rounded-pill px-4" placeholder="Escribe un mensaje aquí...">
-                  <input id="chatImage" type="file" accept="image/*" class="d-none" aria-hidden="true">
-                  <button type="button" id="chatImageBtn" class="btn btn-outline-secondary btn-sm" title="Adjuntar imagen">
-                    <i class="bi bi-paperclip"></i>
-                  </button>
+                  <input id="chatInput" type="text" class="form-control rounded-pill px-4" placeholder="Escribe para corregir...">
                   <button type="submit" class="btn btn-send rounded-circle ms-auto">
                     <i class="bi bi-send-fill"></i>
                   </button>
@@ -52,83 +44,51 @@ export function renderChat() {
   </div>`;
     },
 
-    // ─── CARGAR RENDER: Toda la lógica (selectores, eventos, estado) ───
     cargarRender() {
-      // --- Funciones auxiliares internas ---
-      function createMessageHtml({ direction = 'received', text = '', imgSrc = null, time = null }) {
-        const cls = direction === 'sent' ? 'message sent mb-3' : 'message received mb-3';
-        const timeHtml = time ? `<div class="message-time">${time}</div>` : '';
-        const imgHtml = imgSrc
-          ? `<div style="margin-top:8px"><img src="${imgSrc}" style="max-width:100%;max-height:300px;height:auto;width:auto;border-radius:8px;display:block"></div>`
-          : '';
-        return `<div class="${cls}"><div class="message-content shadow-sm">${text}${imgHtml}${timeHtml}</div></div>`;
-      }
-
-      function appendMessage(msg) {
-        const container = document.getElementById('chatMessages');
-        if (!container) return;
-        container.insertAdjacentHTML('beforeend', createMessageHtml(msg));
-
-        const last = container.lastElementChild;
-        if (last) {
-          const img = last.querySelector('img');
-          if (img) {
-            img.addEventListener('load', () => { container.scrollTop = container.scrollHeight; });
-          }
-        }
-        container.scrollTop = container.scrollHeight;
-      }
-
-      // --- Selectores del DOM ---
       const container = document.getElementById('chatMessages');
       const form = document.getElementById('chatForm');
       const input = document.getElementById('chatInput');
-      const fileInput = document.getElementById('chatImage');
-      const clearBtn = document.getElementById('clearChatBtn');
-      const imageBtn = document.getElementById('chatImageBtn');
 
-      // Limpiar mensajes al cargar la vista
-      if (container) container.innerHTML = '';
-
-      // --- Event Listeners ---
-      if (imageBtn) {
-        imageBtn.addEventListener('click', () => {
-          const fi = document.getElementById('chatImage');
-          if (fi) fi.click();
-        });
+      function appendMessage(direction, text) {
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const cls = direction === 'sent' ? 'message sent mb-3' : 'message received mb-3';
+        
+        container.insertAdjacentHTML('beforeend', `
+          <div class="${cls}">
+            <div class="message-content shadow-sm p-3 rounded-3">${text}</div>
+            <small class="text-muted">${time}</small>
+          </div>
+        `);
+        container.scrollTop = container.scrollHeight;
       }
 
-      if (form) {
-        form.addEventListener('submit', (ev) => {
-          ev.preventDefault();
-          const text = input ? input.value.trim() : '';
-          const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
 
-          if (file) {
-            if (!file.type.startsWith('image/')) {
-              alert('Solo se permiten imágenes.');
-            } else {
-              const reader = new FileReader();
-              reader.onload = function (evt) {
-                appendMessage({ direction: 'sent', text: text || '', imgSrc: evt.target.result, time: new Date().toLocaleTimeString() });
-              };
-              reader.readAsDataURL(file);
-            }
-          } else if (text) {
-            appendMessage({ direction: 'sent', text, time: new Date().toLocaleTimeString() });
-          }
+        appendMessage('sent', text);
+        input.value = '';
 
-          if (input) input.value = '';
-          if (fileInput) fileInput.value = '';
-        });
-      }
+        try {
+          const response = await fetch('http://localhost:3000/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+          });
 
-      if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-          const c = document.getElementById('chatMessages');
-          if (c) c.innerHTML = '';
-        });
-      }
+          if (!response.ok) throw new Error("Error en el servidor");
+
+          const data = await response.json();
+          
+          // AQUÍ ESTÁ EL TRUCO: Accedemos directamente a la propiedad 'reply'
+          const corregido = data.reply || "No pude corregir el texto.";
+          appendMessage('received', corregido);
+
+        } catch (error) {
+          appendMessage('received', "❌ Error: Verifica que tu servidor esté corriendo.");
+        }
+      });
     }
   };
 }
